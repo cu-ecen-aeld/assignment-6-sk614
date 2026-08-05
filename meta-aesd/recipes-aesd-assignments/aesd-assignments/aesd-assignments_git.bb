@@ -11,14 +11,19 @@ S = "${WORKDIR}/git/server"
 FILES:${PN} += "${bindir}/aesdsocket"
 FILES:${PN} += "${sysconfdir}/init.d/S99aesdsocket"
 
-TARGET_LDFLAGS += "-pthread"
+CFLAGS:append = " -pthread"
+LDFLAGS:append = " -pthread"
 
 do_configure () {
     :
 }
 
 do_compile () {
-    oe_runmake
+    oe_runmake clean
+    oe_runmake \
+        CC="${CC}" \
+        CFLAGS="${CFLAGS}" \
+        LDFLAGS="${LDFLAGS}"
 }
 
 do_install () {
