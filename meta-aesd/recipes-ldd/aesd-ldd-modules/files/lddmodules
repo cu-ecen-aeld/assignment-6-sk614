@@ -1,0 +1,77 @@
+#!/bin/sh
+
+case "$1" in
+    start)
+        echo "Loading LDD modules"
+
+        modprobe scull || exit 1
+
+        SCULL_MAJOR=$(awk '$2=="scull" {print $1}' /proc/devices)
+
+        if [ -n "$SCULL_MAJOR" ]; then
+            rm -f /dev/scull /dev/scull[0-3]
+            mknod /dev/scull0 c "$SCULL_MAJOR" 0
+            mknod /dev/scull1 c "$SCULL_MAJOR" 1
+            mknod /dev/scull2 c "$SCULL_MAJOR" 2
+            mknod /dev/scull3 c "$SCULL_MAJOR" 3
+            ln -sf scull0 /dev/scull
+            chmod 664 /dev/scull[0-3]
+
+            rm -f /dev/scullpipe /dev/scullpipe[0-3]
+            mknod /dev/scullpipe0 c "$SCULL_MAJOR" 4
+            mknod /dev/scullpipe1 c "$SCULL_MAJOR" 5
+            mknod /dev/scullpipe2 c "$SCULL_MAJOR" 6
+            mknod /dev/scullpipe3 c "$SCULL_MAJOR" 7
+            ln -sf scullpipe0 /dev/scullpipe
+            chmod 664 /dev/scullpipe[0-3]
+
+            rm -f /dev/scullsingle /dev/sculluid /dev/scullwuid /dev/scullpriv
+            mknod /dev/scullsingle c "$SCULL_MAJOR" 8
+            mknod /dev/sculluid    c "$SCULL_MAJOR" 9
+            mknod /dev/scullwuid   c "$SCULL_MAJOR" 10
+            mknod /dev/scullpriv   c "$SCULL_MAJOR" 11
+
+            chmod 664 /dev/scullsingle /dev/sculluid \
+                /dev/scullwuid /dev/scullpriv
+        fi
+
+        modprobe faulty || exit 1
+
+        FAULTY_MAJOR=$(awk '$2=="faulty" {print $1}' /proc/devices)
+
+        if [ -n "$FAULTY_MAJOR" ]; then
+            rm -f /dev/faulty
+            mknod /dev/faulty c "$FAULTY_MAJOR" 0
+            chmod 664 /dev/faulty
+        fi
+
+        modprobe hello || exit 1
+        ;;
+
+    stop)
+        echo "Unloading LDD modules"
+
+        rmmod hello 2>/dev/null || true
+        rmmod faulty 2>/dev/null || true
+        rmmod scull 2>/dev/null || true
+
+        rm -f /dev/faulty
+
+        rm -f /dev/scull /dev/scull[0-3]
+        rm -f /dev/scullpipe /dev/scullpipe[0-3]
+        rm -f /dev/scullsingle /dev/sculluid
+        rm -f /dev/scullwuid /dev/scullpriv
+        ;;
+
+    restart)
+        "$0" stop
+        "$0" start
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0
